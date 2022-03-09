@@ -2,6 +2,7 @@ package com.wjx.study.feign;
 
 import com.wjx.common.Result;
 import com.wjx.common.vo.GoodsVO;
+import com.wjx.study.fallback.GoodsServiceFallback;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  *
  * fallback可以指定容错类
  */
-@FeignClient(value = "goods-service")
+@FeignClient(value = "goods-service",fallback = GoodsServiceFallback.class)
 public interface GoodsServiceFeign {
 
     @GetMapping(value = "/goods/detail")

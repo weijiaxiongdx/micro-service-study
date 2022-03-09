@@ -71,6 +71,14 @@
      2.0.8自定义各规则异常返回，配置BlockExceptionHandler处理组件，针对不同的异常作不同的处理
           这种异常处理优先级高于@SentinelResource注解配置的降级逻辑
      2.0.9规则持久化 todo
+  2.1Feign整合Sentinel实现容错处理，但这种方式拿不到异常信息
+     2.1.1引入依赖spring-cloud-starter-alibaba-sentinel，前面步骤已引入
+     2.1.2开启Feign对Sentinel的支持，在配置文件中配置feign.sentinel.enabled=true
+     2.1.3创建容错类，然后通过@FeignClient注解中的fallback属性指定容错类
+     2.1.4遇到的问题，启动报错com.alibaba.cloud.sentinel.feign.SentinelContractHolder.parseAndValidatateMetadata
+          将spring-cloud-starter-openfeign依赖的版本升级到2.2.2.RELEASE即可解决
+     2.1.5测试，停掉商品服务或在代码中人为制造异常，访问订单服务
+
 
 
 

@@ -19,3 +19,7 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true  #开启下划线转驼峰
 
+feign:
+  sentinel:
+    enabled: true #开启Feign对Sentinel的支持，以实现调用时的容错处理
+
