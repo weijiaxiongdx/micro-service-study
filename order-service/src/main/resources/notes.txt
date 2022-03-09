@@ -1,0 +1,85 @@
+1.项目搭建过程
+  1.1登录github官网，创建仓库并获取仓库地址https://github.com/weijiaxiongdx/micro-service-study.git
+  1.2进入D盘，右键->Git Clone，把项目clone到本地
+  1.3新建order-service、goods-service模块，右键项目名称->New->Module->Java->Module SDK->选择java版本
+  1.4order-service、goods-service分别手动新建目录、包、pom.xml文件、启动类等(同名目录、同名包会自动分层)。
+     如果1.3中新建模块时选择的是Maven，则不用手动创建目录结构、pom.xml文件等，Maven帮我们创建好了
+  1.5修改配置文件，配置端口等信息。pom.xml引入依赖
+  1.6设置注释模板快捷键(ctrl+alt+s可直接打开Setting界面)
+     File->Setting->Live Templates->点击右上角"+"号，新增Live Template
+     Abbreviation输入项表示快捷键字母，Description输入项表示对该快捷键的描述，Expand with下拉选项选择与字母组合的键(在类上按c+Enter可生成类注释)，最下方的change配置
+     Template text输入项表示模板内容(需要配置日期、时间、包名、类名等变量)，
+       类模板如下(在类上按c+Enter可生成类注释)
+       /**
+        * @Desc: $Desc$
+        * @File name：$PACKAGE_NAME$.$NAME$
+        * @Create on：$DATE$ $TIME$
+        * @Author：wjx
+        */
+
+        方法模板如下(在方法上按x+Enter可生成方法注释)
+        /**
+         * @Des $des$
+         * @Date $date$ $time$
+         * @Param $param$
+         * @Return $return$
+         * @Author wjx
+         */
+  1.7搭建nacos服务
+     1.7.1下载nacos，选择对应版本及对应平台的文件包(下载此时最新版本1.4.3的nacos-server-1.4.3.zip文件) https://github.com/alibaba/nacos/releases
+     1.7.2解压并启动nacos服务,此版本nacos默认以集群方式启动，先用单机玩玩，否则直接启动会报错
+         方式一：修改startup.cmd文件中的set MODE="cluster"为set MODE="standalone"，直接双击startup.cmd文件即可启动
+         方式二：进入bin目录，执行命令startup.cmd -m standalone即可启动
+     1.7.3访问(默认用户和密码都是nacos)http://127.0.0.1:8848/nacos/index.html
+  1.8应用集成nacos
+     1.8.1引入依赖spring-cloud-starter-alibaba-nacos-discovery
+     1.8.2启动类上加注解@EnableDiscoveryClient
+     1.8.3配置文件中配置nacos服务的地址，服务名称也必须配置，否则服务不能注册到nacos
+     1.8.4应用启动成功后，nacos服务列表查看应用是否注册成功
+  1.9应用集成Feign进行远程服务调用
+     1.9.1引入依赖spring-cloud-starter-openfeign
+     1.9.2启动类上加注解@EnableFeignClients
+     1.9.3创建接口GoodsServiceFeign
+     1.9.4遇到的问题，引入openfeign依赖后，远程调用失败，因为spring-cloud-starter-openfeign与spring-cloud-starter-alibaba-nacos-discovery
+          使用的版本不兼容，单独引入archaius-core依赖即可解决问题。也可找二者兼容的版本。
+  2.0应用集成sentinel
+     2.0.1引入依赖spring-cloud-starter-alibaba-sentinel
+     2.0.2下载sentinel-dashboard，访问https://github.com/alibaba/Sentinel/releases，下载jar包sentinel-dashboard-1.8.3.jar(此时的最新版本)
+     2.0.3启动sentinel-dashboard，执行以下命令
+          java -Dserver.port=8080 -Dcsp.sentinel.dashboard.server=localhost:8080 -Dproject.name=sentinel-dashboard -jar sentinel-dashboard-1.8.3.jar
+     2.0.4登录sentinel-dashboard(默认用户名和密码都是sentinel)，http://localhost:8080，此时只能看到sentinel-dashboard本身一个服务
+     2.0.5配置文件增加sentinel的相关配置
+     2.0.6重启应用，刷新sentinel-dashboard控制台页面，发现还是只有sentinel-dashboard本身一个服务。这是因为sentinel-dashboard是懒加载的，
+          此时只要访问一下order-service应用(调一下接口)，sentinel-dashboard控制台就可以看到order-service服务了
+     2.0.7sentinel-dashboard控制台配置流控规则，在"簇点链路"页面找到对应的接口资源(以下规则配置默认是存储在对应的微服务内存中，在控制台配置规则并保存后，
+                            把规则推送到了Sentinel客户端，即推送到了对应的微服务，重启微服务就没了)
+          流控规则： 针对来源->针对哪个微服务的调用来作流量控制，
+                   阈值类型->阈值类型配置为QPS、单机阈值配置为3，则表示每秒只能处理3个请求，超过3个请求就会被限流，默认提示为“Blocked by Sentinel (flow limiting)”
+                           阈值类型配置为并发线程数、单机阈值配置为3，则表示只能同时支持3个线程的并发请求(用jmeter模拟多个线程访问，默认提示同上)
+                   流控模式->直接表示配置的资源名到达阈值时，会被限流
+                           关联表示配置的关联资源到达阈值时，会对配置的资源名进行限流，可做请求让步(查询让步更新)
+                           链路表示配置的入口资源到达阈值时，会对配置的资源名进行限流，例如C为配置的资源名，A、B都调用C，A同时配置为链路的入口资源，那么A到达阈值时，C会被限流
+                   流控效果->快速失败表示请求数超过阈值时，直接抛异常，默认就是此效果，默认异常提示为“Blocked by Sentinel (flow limiting)”
+                            Warm Up(预热)，一开始的阈值为最大阈值的1/3，然后慢慢增长，直到最大阈值，适用于将突然增大的流量转换为缓步增长的流量的场景
+                            排队等候，超过阈值的请求会进入队列等候，超过配置的等候时间则视为失败
+          熔断规则： 熔断策略->慢调用比例，平均响应时间超过配置的阈值时，则触发熔断
+                           异常比例，单位时间内异常请求占比超过阈值时，则触发熔断
+                           异常数，单位时间内异常请求数超过阈值时，则触发熔断
+          热点规则： 将流控规则应用到参数级别(参数名称、甚至到参数值)
+          授权规则： (不)允许授权中配置的某(些)应用访问配置的资源名。比如服务A、服务B都调用了服务C，那么在服务C中可以配置授权规则，指定服务A(不)可以访问自己
+          系统规则： 应用级别的限流，监控的是单台机器入口流量。上面4个都资源级别的限流
+     2.0.8自定义各规则异常返回，配置BlockExceptionHandler处理组件，针对不同的异常作不同的处理
+          这种异常处理优先级高于@SentinelResource注解配置的降级逻辑
+     2.0.9规则持久化 todo
+
+
+
+2.如何设置application.yml文件自动提示
+  1.1File->Settings->Plugins，搜索spring assistant插件并安装
+  1.2File->Settings->Build, Execution & Deployment->Compiler->Annotation Processors，勾选以下选项，确认就可以了(不需要重启idea)
+     Enable annotation processing
+
+3.查看Spring Boot、Spring Cloud、Spring Cloud Alibaba版本对应关系
+  https://github.com/alibaba/spring-cloud-alibaba/wiki/版本说明
+
+4.疑问

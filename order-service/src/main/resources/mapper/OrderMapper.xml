@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wjx.study.dao.OrderMapper">
+
+    <select id="selectOrderById" resultType="com.wjx.common.vo.OrderVO">
+        select id, status, order_number orderNo, user_id from pp_order_pro where id = #{id,jdbcType=BIGINT}
+    </select>
+
+</mapper>

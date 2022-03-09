@@ -1,0 +1,19 @@
+server:
+  port: 9112
+
+spring:
+  application:
+    name: goods-service
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848 #nacos服务地址
+  profiles:
+    active: '@profileActive@'
+
+mybatis:
+  mapper-locations: classpath*:/mapper/*.xml
+  configuration:
+    # 开启下划线转驼峰
+    map-underscore-to-camel-case: true
+
+
