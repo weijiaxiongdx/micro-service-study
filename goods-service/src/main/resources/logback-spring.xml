@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="APP_NAME" value="data-api"/>
+    <property name="APP_NAME" value="goods-service"/>
     <contextName>${APP_NAME}</contextName>
 
     <!-- 控制台彩色打印 -->

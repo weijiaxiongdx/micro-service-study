@@ -117,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
     public GoodsVO selectGoodsById4(Long id) {
         Result<GoodsVO> goods = goodsServiceFeign.selectGoodsById(id);
         if(goods.getData().getId().equals(-100L)){
-            log.info("说明远程调用失败");
+            log.info("说明远程调用失败，商品名称：{}",goods.getData().getName());
         }
         log.info("查询到的商品数据：{}",goods.getData());
         return goods.getData();

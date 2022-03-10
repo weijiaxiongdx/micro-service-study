@@ -71,14 +71,28 @@
      2.0.8自定义各规则异常返回，配置BlockExceptionHandler处理组件，针对不同的异常作不同的处理
           这种异常处理优先级高于@SentinelResource注解配置的降级逻辑
      2.0.9规则持久化 todo
-  2.1Feign整合Sentinel实现容错处理，但这种方式拿不到异常信息
+  2.1Feign整合Sentinel实现容错处理
      2.1.1引入依赖spring-cloud-starter-alibaba-sentinel，前面步骤已引入
      2.1.2开启Feign对Sentinel的支持，在配置文件中配置feign.sentinel.enabled=true
-     2.1.3创建容错类，然后通过@FeignClient注解中的fallback属性指定容错类
+     2.1.3创建容错类，然后通过@FeignClient注解中的fallback属性指定容错类(拿不到远程调用异常信息)，或通过fallbackFactory属性指定容错类(可以拿到远程调用异常)
      2.1.4遇到的问题，启动报错com.alibaba.cloud.sentinel.feign.SentinelContractHolder.parseAndValidatateMetadata
           将spring-cloud-starter-openfeign依赖的版本升级到2.2.2.RELEASE即可解决
      2.1.5测试，停掉商品服务或在代码中人为制造异常，访问订单服务
-
+  2.2引入网关(以Spring Cloud Gateway网关为例)
+     2.2.1业界流行网关Ngnix+lua、Kong(基于ngnix+lua开发)、Zuul、Spring Cloud Gateway
+          Spring Cloud Gateway网关缺点：基于Netty和WebFlux开发，学习成本高；不能部署在Tomcat、Jetty等Servlet容器，只能打成jar包执行；Spring boot2.0及以上版本才支持
+     2.2.2新建api-gateway网关模块、引入依赖spring-cloud-starter-gateway、创建启动类
+     2.2.3配置文件中配置cloud.gateway.routes相关配置
+     2.2.4浏览器访问http://localhost:8110/order-serv/order/detail?orderId=310，请求成功转发到订单服务
+  2.3网关服务集成nacos
+     2.3.1网关服务引入依赖spring-cloud-starter-alibaba-nacos-discovery
+     2.3.2网关服务启动类上加注解@EnableDiscoveryClient
+     2.3.3配置文件中配置nacos服务的地址nacos.discovery.server-addr=127.0.0.1:8848
+     2.3.4配置文件中开启从nacos中获取信息的开关discovery.locator.enabled=true
+     2.3.5浏览器访问http://localhost:8110/order-serv/order/detail?orderId=310，请求成功转发到订单服务(轮询转发到订单服务多个实例)
+     2.3.6默认路由，如果配置文件中没有配置cloud.gateway.routes，则会使用默认路由进行请求的转发(第一层路径指定为服务名称)
+          浏览器访问http://localhost:8110/order-service/order/detail?orderId=310，请求成功转发到订单服务(轮询转发到订单服务多个实例)
+  2.4自定义路由断言 todo
 
 
 
