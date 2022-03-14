@@ -21,13 +21,16 @@ public class GoodsServiceFallbackFactory implements FallbackFactory<GoodsService
 
     @Override
     public GoodsServiceFeign create(Throwable throwable) {
-        return id -> {
-            GoodsVO goods = new GoodsVO();
-            goods.setId(-100L);
-            goods.setName("不存在商品-能拿到异常信息");
-            goods.setStock(0);
-            goods.setSalePrice(BigDecimal.ZERO);
-            return Result.ok(goods);
-        };
+//        return id -> {
+//            GoodsVO goods = new GoodsVO();
+//            goods.setId(-100L);
+//            goods.setName("不存在商品-能拿到异常信息");
+//            goods.setStock(0);
+//            goods.setSalePrice(BigDecimal.ZERO);
+//            return Result.ok(goods);
+//        };
+
+        //GoodsServiceFeign中有多个方法，该工厂怎写？ 暂时注释掉
+        return null;
     }
 }

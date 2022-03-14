@@ -19,4 +19,6 @@ public interface OrderService {
     GoodsVO selectGoodsById4(Long id);
 
     String selectGoodsById5(Long id);
+
+    GoodsVO selectGoodsById6(Long id);
 }

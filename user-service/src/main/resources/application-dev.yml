@@ -5,9 +5,13 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-
 # 加了以下配置才能打印出执行的SQL语句。 找不到日志文件，则启动报错
 logging:
   config: classpath:logback-spring.xml
   level:
     com.wjx.study.**: debug
+
+
+
+
+

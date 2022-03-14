@@ -104,4 +104,17 @@ public class OrderController {
     public Result<String> selectGoodsById5(@RequestParam(value = "goodsId",required = false) Long id){
         return Result.ok(orderService.selectGoodsById5(id));
     }
+
+    /**
+     * @Des
+     * @Date 2022/3/13 16:26
+     * @Param
+     * @Return
+     * @Author wjx
+     */
+    @ApiOperation(value = "远程查看商品详情，不走数据库")
+    @GetMapping("/goods/detail6")
+    public Result<GoodsVO> selectGoodsById6(@RequestParam("goodsId") Long id){
+        return Result.ok(orderService.selectGoodsById6(id));
+    }
 }

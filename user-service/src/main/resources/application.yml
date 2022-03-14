@@ -1,0 +1,20 @@
+server:
+  port: 6000
+
+spring:
+  application:
+    name: user-service #服务名称
+
+  profiles:
+    active: '@profileActive@'
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848 #nacos服务地址，将用户服务注册到nacos
+
+mybatis:
+  mapper-locations: classpath*:/mapper/*.xml
+  configuration:
+    # 开启下划线转驼峰
+    map-underscore-to-camel-case: true

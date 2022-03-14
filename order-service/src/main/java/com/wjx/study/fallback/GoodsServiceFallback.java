@@ -27,4 +27,15 @@ public class GoodsServiceFallback implements GoodsServiceFeign {
         goods.setSalePrice(BigDecimal.ZERO);
         return Result.ok(goods);
     }
+
+    @Override
+    public Result<GoodsVO> selectGoodsById2(Long id) {
+        // 容错逻辑
+        GoodsVO goods = new GoodsVO();
+        goods.setId(-111L);
+        goods.setName("不存在商品2");
+        goods.setStock(0);
+        goods.setSalePrice(BigDecimal.ZERO);
+        return Result.ok(goods);
+    }
 }

@@ -8,9 +8,13 @@ package com.wjx.common.constant;
  */
 public class Constant {
 
-    /**
-     * 请求返回码对象
-     */
+    // 登录验证码key
+    public static final String LOGIN_SMS_CODE_KEY = "login_sms_code:%s";
+
+    // 用户信息缓存key
+    public static final String USER_INFO_CACHE = "userInfo:%s";
+
+    // 请求返回码对象
     public static class RESULT {
 
         public final static int SC0 = 0;//成功

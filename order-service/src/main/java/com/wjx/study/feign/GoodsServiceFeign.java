@@ -20,9 +20,13 @@ import org.springframework.web.bind.annotation.RequestParam;
  */
 @FeignClient(value = "goods-service",
             fallback = GoodsServiceFallback.class,
-            fallbackFactory = GoodsServiceFallbackFactory.class)
+            fallbackFactory = GoodsServiceFallbackFactory.class
+             )
 public interface GoodsServiceFeign {
 
     @GetMapping(value = "/goods/detail")
     Result<GoodsVO> selectGoodsById(@RequestParam("goodsId") Long id);
+
+    @GetMapping(value = "/goods/detail2")
+    Result<GoodsVO> selectGoodsById2(@RequestParam("goodsId") Long id);
 }

@@ -93,7 +93,28 @@
      2.3.6默认路由，如果配置文件中没有配置cloud.gateway.routes，则会使用默认路由进行请求的转发(第一层路径指定为服务名称)
           浏览器访问http://localhost:8110/order-service/order/detail?orderId=310，请求成功转发到订单服务(轮询转发到订单服务多个实例)
   2.4自定义路由断言 todo
-
+  2.5网关中的过滤器
+     2.5.1生命周期
+         pre：这种过滤器在请求被路由前之前调用，可以实现身份认证，在集群中选择请求的微服务等
+         post：这种过滤器在路由到微服务以后执行，可以实现为响应添加响应头，收集统计信息和指标，将响应从微服务发送给客户端等
+     2.5.2分类
+          局部过滤器(GatewayFilter)，针对单个路由的过滤器，如网关服务配置文件中的routes.filters属性配置的过滤器
+          全局过滤器(GlobalFilter)，应用到所有路由上，可实现权限的统一认证(统一鉴权-验证是否登录)，安全性验证等
+     2.5.3内置局部过滤器测试，网关服务配置文件中的routes.filters属性加上以下配置，用来更改响应的状态码
+          SetStatus=250
+     2.5.4自定义局部过滤器
+          2.5.4.1在网关服务配置文件中的routes.filters属性加上Log=true,false，用来控制日志是否开启
+          2.5.4.2创建局部过滤器LogGatewayFilterFactory
+          2.5.4.3测试，请求网关服务
+     2.5.5自定义全局过滤器，实现统一鉴权
+          2.5.5.1统一鉴权逻辑，登录请求经过网关时，请求被转发到授权中心微服务，授权中心微服务执行登录逻辑，成功则返回token，后续每次请求携带token经过网关时，
+                 网关会进行鉴权处理，鉴权成功则转发到订单等微服务
+          2.5.5.2创建授权中心微服务模块auth-service，引入依赖(web,redis等相关依赖)并配置profiles，配置application.yml，application-dev.yml文件(数据库，redis等配置)，引入nacos。
+                 创建用户服务微服务模块user-service并配置，提供通过手机号查询用户信息接口，授权中心需要远程调用用户服务
+          2.5.5.3网关微服务中创建全局过滤器AuthGlobalFilter，并实现鉴权逻辑
+          2.5.5.4postman测试，访问网关地址: http://localhost:8110/login-serv/auth/loginByCode
+                                   参数: {"phone": "18312469053","code" :"abc123"}
+                               Headers: Content-Type,token
 
 
 2.如何设置application.yml文件自动提示

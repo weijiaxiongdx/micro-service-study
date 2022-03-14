@@ -136,6 +136,17 @@ public class OrderServiceImpl implements OrderService {
         return "hello";
     }
 
+
+    @Override
+    public GoodsVO selectGoodsById6(Long id) {
+        Result<GoodsVO> goods = goodsServiceFeign.selectGoodsById2(id);
+        if(goods.getData().getId().equals(-111L)){
+            log.info("说明远程调用失败，商品名称：{}",goods.getData().getName());
+        }
+        log.info("查询到的商品数据：{}",goods.getData());
+        return goods.getData();
+    }
+
     public String blockHandlerMethod(Long id, BlockException e){
         log.info("Sentinel异常：{}",e);
         return "处理Sentinel异常";

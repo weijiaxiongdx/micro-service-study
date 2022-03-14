@@ -5,6 +5,9 @@ spring:
   application:
     name: api-gateway #服务名称
 
+  profiles:
+    active: '@profileActive@'
+
   cloud:
     nacos:
       discovery:
@@ -24,3 +27,13 @@ spring:
             - Method=GET #内置断言Method，当请求方式为get时，此路由才会被转发
           filters: #过滤器，在请求转发过程中，可以对请求作一些修改
             - StripPrefix=1 #在请求转发之前去掉一层路径，本来转发完整路径为http://localhost:9110/order-serv/order/detail?orderId=308，但必须要去掉order-serv这一层才能访问到订单服务
+            - SetStatus=250 #该内置局部过滤器是更改响应的状态码
+            - Log=true,false #自定义的局部过滤器，控制日志是否开启
+
+        - id: auth_route # 新增授权中心路由
+          uri: lb://auth-service #集成nacos后，使用负载均衡转发到对应的服务，auth-service为服务名称
+          order: 0 #路径的优先级，数字越小优先级越高
+          predicates: #转发请求要满足的条件
+            - Path=/login-serv/** #内置断言Path，当请求满足Path指定的规则时，此路由才会被转发
+          filters: #过滤器，在请求转发过程中，可以对请求作一些修改
+            - StripPrefix=1
