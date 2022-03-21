@@ -115,6 +115,55 @@
           2.5.5.4postman测试，访问网关地址: http://localhost:8110/login-serv/auth/loginByCode
                                    参数: {"phone": "18312469053","code" :"abc123"}
                                Headers: Content-Type,token
+  2.6网关引入限流
+     2.6.1引入依赖 todo
+     2.6.2添加配置类GatewayConfiguration todo
+  2.7整个系统引入链路追踪(Sleuth-用于链路追踪，zipkin-用于收集，存储，查找，展现数据)
+     2.7.1概念
+          Trace：由一组Trace Id相同的Span串联形成的一个树状结构，为了实现请求跟踪，当请求到达分布式系统的入口端点(比如网关)时，服务跟踪框架会为该请求创建一个
+                唯一标识(即TraceId)，该唯一标识会在整个请求链路中流转，标识分布式系统的入口和出口
+          Span：代表了一组基本的工作单元,当请求到达具体的微服务时，会创建一个SpanId，标识分布式系统中某个微服务的入口和出口
+          Annotation：记录一段时间内的事件
+     2.7.2父工程(因为每个微服务都需要追踪)引入依赖spring-cloud-starter-sleuth
+     2.7.3postman测试，发送请求http://localhost:8110/login-serv/auth/loginByCode，可在控制台日志中看到以下信息（为什么后面两个服务的服务名称没有显示？？？）
+          服务名称          TracId          SpanId    是否展示在第三方平台
+         [api-gateway,353bd432852e1ca1,353bd432852e1ca1,false]       网关服务
+         [,8823e6fa99124534,a59fb0e24359298d,false]                  授权中心服务
+         [,353bd432852e1ca1,138c54d2be1a6f28,false]                  用户服务
+
+         但仅仅这样，不方便看，所以需要引入Zipkin
+     2.7.4引入Zipkin，聚合日志，并进行可视化的展示和全文检索(数据默认存储在内存中)
+          2.7.4.1官网下载Zipkin的zipkin-server-2.23.16-exec.jar包(服务端)，java条目点击“latest release”下载最新版本，https://zipkin.io/pages/quickstart.html
+          2.7.4.2启动Zipkin服务，java -jar zipkin-server-2.23.16-exec.jar
+          2.7.4.3浏览器访问http://127.0.0.1:9411/
+          2.7.4.4引入Zipkin客户端，在父工程中引入Zipkin的依赖spring-cloud-starter-zipkin
+          2.7.4.5每个微服务中配置Zipkin的相关配置(服务端的url，采样百分比等)并重启
+          2.7.4.6测试，请求登录接口并在服务端控制台查询链路及对应的服务依赖情况
+          2.7.4.7日志中可看到如下信息，最后一项为true，表示展示到第三方平台(Zipkin)
+                [api-gateway,1774796e2b52d341,1774796e2b52d341,true]
+          2.7.4.8数据持久化到mysql
+                 2.7.4.8.1创建zipkin数据库并执行zipkin.sql文件中的sql语句
+                 2.7.4.8.2启动Zipkin服务，需要指定数据库的信息
+                          java -jar zipkin-server-2.23.16-exec.jar --STORAGE_TYPE=mysql --MYSQL_HOST=127.0.0.1 --MYSQL_TCP_PORT=3306 --MYSQL_DB=zipkin --MYSQL_USER=root --MYSQL_PASS=123456
+                 2.7.4.8.3请求登录接口，重启Zipkin服后，查看管理平台是否有对应的数据
+          2.7.4.9数据持久化到elasticsearch
+                 2.7.4.9.1下载elasticsearch的elasticsearch-8.1.0-windows-x86_64.zip文件，https://www.elastic.co/cn/start
+                 2.7.4.9.2解压并启动elasticsearch，双击elasticsearch.bat文件
+                 2.7.4.9.3启动Zipkin服务，需要指定elasticsearch的信息
+                          java -jar zipkin-server-2.23.16-exec.jar --STORAGE_TYPE=elasticsearch --ES-HOST=localhost:9200
+  2.8引入配置中心
+     2.8.1搭建nacos服务，1.7步骤已经做了
+     2.8.2引入依赖(以订单服务为例)spring-cloud-starter-alibaba-nacos-config
+     2.8.3在订单服务中创建bootstrap.yml文件，并配置一些内容(先把application.yml中的内容拷贝到配置中心，然后注释掉application.yml中的内容)
+     2.8.4在nacos管理平台中新增配置(order-service-dev.yaml)
+          Data ID=bootstrap.yml文件中的服务名+bootstrap.yml文件中的环境名+配置格式类型，如order-service-dev.yaml
+     2.8.5获取配置中心中配置的内容
+          2.8.5.1硬编码方式，通过ConfigurableApplicationContext获取，ConfigController中的get1方法，postman请求地址http://localhost:9110/config/get1
+          2.8.5.1注解方式，通过@Value注解获取，需要配合@RefreshScope注解作动态刷新，ConfigController中的get2方法，postman请求地址http://localhost:9110/config/get2
+     2.8.6配置共享
+          2.8.6.1同一微服务不同环境之间共享配置，在nacos管理平台中新增配置order-service.yaml(存放各环境公共配置)，order-service-test.yaml，
+                                          修改bootstrap.yml文件中的active属性值，postman请求地址http://localhost:9110/config/get2，测试从配置中心获取不同环境的配置内容
+          2.8.6.2不同微服务之间共享配置，在nacos管理平台中新增配置all-service.yaml，在bootstrap.yml文件新增shared-dataids和refreshable-dataids配置项
 
 
 2.如何设置application.yml文件自动提示

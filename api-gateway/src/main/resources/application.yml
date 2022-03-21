@@ -37,3 +37,10 @@ spring:
             - Path=/login-serv/** #内置断言Path，当请求满足Path指定的规则时，此路由才会被转发
           filters: #过滤器，在请求转发过程中，可以对请求作一些修改
             - StripPrefix=1
+
+  zipkin:
+    base-url: http://127.0.0.1:9411/ #指定Zipkin服务端地址
+    discoveryClientEnable: false #让nacos把base-url当成一个url，不要当成服务名
+  sleuth:
+    sampler:
+      probability: 1.0 #采样百分比，向Zipkin服务端推送数据需要发送请求，有性能损耗，此处可按实际情况配置百分比，1.0表示百分百

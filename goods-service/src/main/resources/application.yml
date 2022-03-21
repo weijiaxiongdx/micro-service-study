@@ -10,6 +10,13 @@ spring:
   profiles:
     active: '@profileActive@'
 
+  zipkin:
+    base-url: http://127.0.0.1:9411/ #指定Zipkin服务端地址
+    discoveryClientEnable: false #让nacos把base-url当成一个url，不要当成服务名
+  sleuth:
+    sampler:
+      probability: 1.0 #采样百分比，向Zipkin服务端推送数据需要发送请求，有性能损耗，此处可按实际情况配置百分比，1.0表示百分百
+
 mybatis:
   mapper-locations: classpath*:/mapper/*.xml
   configuration:
