@@ -31,6 +31,27 @@
          方式一：修改startup.cmd文件中的set MODE="cluster"为set MODE="standalone"，直接双击startup.cmd文件即可启动
          方式二：进入bin目录，执行命令startup.cmd -m standalone即可启动
      1.7.3访问(默认用户和密码都是nacos)http://127.0.0.1:8848/nacos/index.html
+
+     1.7.4阿里云服务器安装nacos(主机120.79.89.16，账号/密码root/711454466.cn)
+          1.7.4.1进入目录，没有则创建
+                 /usr/local/nacos
+          1.7.4.2下载nacos安装包nacos-server-1.4.3.tar
+                  方式一，在服务器当前目录下执行以下命令，太慢了，10分钟才下载了百分之十几，11:20开始下载，大概三四十分钟才下载完成
+                        https://github.com/alibaba/nacos/releases/download/1.4.3/nacos-server-1.4.3.tar.gz
+                  方式二，直接本地下载安装包并上传到服务器目录/usr/local/nacos
+                         https://github.com/alibaba/nacos/releases
+
+                         上传前需要先安装对应的命令yum -y install lrzsz
+                         通过rz命令上传一直报错，最后通过WinSCP工具上传成功
+          1.7.4.3解压安装包
+                 tar -zxvf nacos-server-1.4.3.tar.gz
+          1.7.4.4修改/usr/local/nacos/bin目录下的启动脚本文件startup.sh
+                 将[ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=$HOME/jdk/java改成如下
+                   [ ! -e "$JAVA_HOME/bin/java" ] && JAVA_HOME=/usr/local/jdk/jdk18
+          1.7.4.5单机方式启动nacos
+                   sh startup.sh -m standalone
+          1.7.4.6在阿里云ESC服务器配置安全组，以开放8848端口，供外网访问
+                 http://120.79.89.16:8848/nacos/index.html
   1.8应用集成nacos
      1.8.1引入依赖spring-cloud-starter-alibaba-nacos-discovery
      1.8.2启动类上加注解@EnableDiscoveryClient
