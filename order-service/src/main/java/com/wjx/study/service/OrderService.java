@@ -1,5 +1,6 @@
 package com.wjx.study.service;
 
+import com.wjx.common.dto.OrderCreateDTO;
 import com.wjx.common.vo.GoodsVO;
 import com.wjx.common.vo.OrderVO;
 
@@ -21,4 +22,6 @@ public interface OrderService {
     String selectGoodsById5(Long id);
 
     GoodsVO selectGoodsById6(Long id);
+
+    void createOrder(OrderCreateDTO dto);
 }

@@ -5,6 +5,8 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.wjx.common.Result;
+import com.wjx.common.constant.Constant;
+import com.wjx.common.dto.OrderCreateDTO;
 import com.wjx.common.vo.GoodsVO;
 import com.wjx.common.vo.OrderVO;
 import com.wjx.study.dao.OrderMapper;
@@ -14,10 +16,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -34,6 +42,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private GoodsServiceFeign goodsServiceFeign;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * @Des 查询订单详情
@@ -155,5 +166,31 @@ public class OrderServiceImpl implements OrderService {
     public String fallbackMethod(Long id){
         log.info("Throwable异常");
         return "处理Throwable异常";
+    }
+
+
+    /**
+     * @Des 创建订单
+     * @Date 2022/3/31 10:30
+     * @Param
+     * @Return
+     * @Author wjx
+     */
+    @Override
+    public void createOrder(OrderCreateDTO dto){
+
+        //1.redis+lua脚本库存扣减逻辑
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
+        redisScript.setResultType(Long.class);
+        redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("redis_stock.lua")));
+        Long result = (Long)redisTemplate.execute(redisScript, Arrays.asList(Constant.PRODUCT_SCHEDULE_SET,Constant.PURCHASE_PRODUCT_LIST),
+                dto.getUserId().toString(), dto.getGoodsId().toString(), dto.getNum().toString(),System.currentTimeMillis() + "");
+        if(result == 0L){
+            log.info("库存扣减失败: {}",result);
+            return;
+        }
+        log.info("库存扣减成功: {}",result);
+        //2.其它业务逻辑哦
+        //开启定时任务，将redis中购买信息保存到数据库中 todo
     }
 }

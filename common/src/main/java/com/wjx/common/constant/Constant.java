@@ -14,6 +14,30 @@ public class Constant {
     // 用户信息缓存key
     public static final String USER_INFO_CACHE = "userInfo:%s";
 
+    // redis库存扣减lua脚本
+    public static String CREATE_ORDER_STOCK_DEDUCE_SCRIPT = "redis.call('sadd',KEYS[1],ARGV[2]) \n"  //将传入的商品id参数productId保存到传入的集合参数PRODUCT_SCHEDULE_SET中
+            + "local productPurchaseList = KEYS[2]..ARGV[2] \n" //购买列表
+            + "local userId = ARGV[1] \n" //用户id
+            + "local product = 'product_'..ARGV[2]) \n" //商品key
+            + "local quantity = tonumber(ARGV[3]) \n" //购买数量
+            + "local stock = tonumber(redis.call('hget',product,'stock')) \n" // 从redis中获取商品当前库存
+            + "local price = tonumber(redis.call('hget',product,'price')) \n" // 从redis中获取商品价格
+            + "local purchase_date = ARGV[4] \n" // 购买日期
+            + "if stock < quantity then return 0 end \n" //库存判断，不足则返回0
+            + "stock = stock - quantity  \n"
+            + "redis.call('hset',product,'stock',tostring(stock)) \n" //扣减库存
+            + "local sum = price * quantity \n" //计算订单金额
+            + "local purchaseRecord = userId..','..quantity..','"
+            + "..sum..','..price..','..purchase_date \n" //合并购买记录
+            + "redis.call('rpush',productPurchaseList, purchaseRecord) \n" // 将购买记录保存list里
+            + "return 1 \n"; //返回成功
+
+    // redis购买记录集合前缀
+    public static final String PURCHASE_PRODUCT_LIST = "purchase_list_";
+
+    // redis抢购商品集合
+    public static final String PRODUCT_SCHEDULE_SET = "product_schedule_set";
+
     // 请求返回码对象
     public static class RESULT {
 

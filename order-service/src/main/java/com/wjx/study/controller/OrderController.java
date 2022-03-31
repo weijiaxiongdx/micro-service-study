@@ -1,16 +1,16 @@
 package com.wjx.study.controller;
 
 import com.wjx.common.Result;
+import com.wjx.common.dto.OrderCreateDTO;
 import com.wjx.common.vo.GoodsVO;
 import com.wjx.common.vo.OrderVO;
 import com.wjx.study.service.OrderService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 /**
  * @Desc: 订单服务类
@@ -117,4 +117,19 @@ public class OrderController {
     public Result<GoodsVO> selectGoodsById6(@RequestParam("goodsId") Long id){
         return Result.ok(orderService.selectGoodsById6(id));
     }
+
+    /**
+     * @Des 创建订单
+     * @Date 2022/3/31 10:54
+     * @Param 
+     * @Return 
+     * @Author wjx
+     */
+    @ApiOperation(value = "创建订单")
+    @PostMapping("/create")
+    public Result<Void> createOrder(@RequestBody @Valid OrderCreateDTO dto){
+        orderService.createOrder(dto);
+        return Result.ok();
+    }
+
 }
