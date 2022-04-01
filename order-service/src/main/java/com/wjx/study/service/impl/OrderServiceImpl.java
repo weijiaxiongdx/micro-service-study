@@ -179,7 +179,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void createOrder(OrderCreateDTO dto){
 
-        //1.redis+lua脚本库存扣减逻辑
+        //1.redis+lua脚本库存扣减逻辑。可以把DefaultRedisScript的初始化操作放到静态代码块中，提前加载好lua脚本
         DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         redisScript.setResultType(Long.class);
         redisScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("redis_stock.lua")));

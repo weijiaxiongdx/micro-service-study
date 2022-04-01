@@ -1,3 +1,4 @@
+-- redis+lua脚本扣减库存
 redis.call('sadd',KEYS[1],ARGV[2])
 local productPurchaseList = KEYS[2]..ARGV[2]
 local userId = ARGV[1]

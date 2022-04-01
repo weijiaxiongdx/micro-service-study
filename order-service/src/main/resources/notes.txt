@@ -185,7 +185,26 @@
           2.8.6.1同一微服务不同环境之间共享配置，在nacos管理平台中新增配置order-service.yaml(存放各环境公共配置)，order-service-test.yaml，
                                           修改bootstrap.yml文件中的active属性值，postman请求地址http://localhost:9110/config/get2，测试从配置中心获取不同环境的配置内容
           2.8.6.2不同微服务之间共享配置，在nacos管理平台中新增配置all-service.yaml，在bootstrap.yml文件新增shared-dataids和refreshable-dataids配置项
-
+  2.9增加redis+lua脚本扣减库存逻辑，实现见订单服务的创建订单接口
+  3.0增加全局唯一id生成器RedisIdWorker
+  3.1redis分布式锁
+     3.1.1简单实现SimpleRedisLock、SimpleRedisLock2、SimpleRedisLock3
+     3.1.2Redisson锁单机版实现(见RedisController类的redissonLockTest方法)
+          3.1.2.1引入依赖redisson
+          3.1.2.2创建配置类RedissonConfig
+          3.1.2.3Redisson实现可重入锁原理，底层使用的是redis中的hash结构set key filed value，filed表示锁标识(用于判断是不是自己的锁)，value表示加锁的次数(每次获取都加1，释放锁都减1)，
+                 每次减1时都要重置锁有效期。加锁和解锁的所有的操作都是在各自的lua脚本中完成的(源码中可以看到对应的lua脚本字符串)，保证了原子性。
+                 存在单节点宕机风险、主从一致性问题
+     3.1.3Redisson联锁实现,每一个Master获取锁成功才算获最终取锁成功(每个Master都是独立的单机实现，原理一样)，解决了主从一致性问题。todo
+          3.1.3.1在配置类中定义多个RedissonClient，就端口不一样(多个Master，每个Master可关联多个Slave)
+          3.1.3.2调用时获取每个客户端的RLock对象
+                  RLock lock1 = redissonClient1.getLock("lock:order:" + userId);
+                  RLock lock2 = redissonClient2.getLock("lock:order:" + userId);
+                  RLock lock3 = redissonClient3.getLock("lock:order:" + userId);
+           3.1.3.3创建联锁、加锁、释放锁
+                  RLock lock = redissonClient.getMultiLock(lock,lock2,lock3);
+                  lock.tryLock(time,unit);
+                  lock.unLock();
 
 2.如何设置application.yml文件自动提示
   1.1File->Settings->Plugins，搜索spring assistant插件并安装
