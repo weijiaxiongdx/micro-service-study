@@ -1,6 +1,7 @@
 package com.wjx.common.entity;
 
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -46,4 +47,8 @@ public class OrderProEntity implements Serializable {
     @ApiModelProperty(value = "订单状态")
     @Column(name = "status")
     private String status;
+
+    //exist = false标识字段userName不是pp_order_pro表中的字段
+    @TableField(exist = false)
+    private String userName;
 }

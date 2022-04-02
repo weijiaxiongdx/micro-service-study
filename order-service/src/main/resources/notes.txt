@@ -205,6 +205,17 @@
                   RLock lock = redissonClient.getMultiLock(lock,lock2,lock3);
                   lock.tryLock(time,unit);
                   lock.unLock();
+  3.2增加redis各种功能(点赞、关注、共同关注、点赞排行榜-最早点赞的N个人、签到)
+     3.2.1点赞，利用redis的set集合判断是否点赞过，未点赞过则赞数加1，点赞过则赞数减1。实现见BlogController类的like方法。
+               postman测试地址http://localhost:9110/blog/like
+                         参数 {
+                            	"id":100
+                             }
+     3.2.2点赞排行榜，实现见BlogController类的like2、likeTop5方法
+     3.2.3查关注自己的粉丝，通过SortedSet实现滚动分页(分数设置为当前时间戳，倒序查)，通过分数进行查询，max为上一次的最小分数值(第一次为当前时间戳)，min不变(写为0)，offset为等于max的偏移量的个数(第一次为0，之后为上次最小值的重复数量)，count表示要查询的条数。
+          实现见BlogController类的queryBlogOfFollow方法(不完整)
+          ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count]
+
 
 2.如何设置application.yml文件自动提示
   1.1File->Settings->Plugins，搜索spring assistant插件并安装

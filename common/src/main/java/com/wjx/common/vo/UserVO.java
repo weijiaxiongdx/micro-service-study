@@ -4,6 +4,7 @@ package com.wjx.common.vo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -17,6 +18,7 @@ import java.io.Serializable;
  */
 @Data
 @ApiModel(value = "用户信息")
+@AllArgsConstructor
 public class UserVO implements Serializable {
 	private static final long serialVersionUID = 1L;
 
