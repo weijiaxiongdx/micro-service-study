@@ -50,4 +50,22 @@ public interface BlogService {
      * @Author wjx
      */
     List<UserVO> queryBlogOfFollow(Long max, Integer offset);
+
+    /**
+     * @Des 用户签到，key一般为用户id加上年月，方便统计
+     * @Date 2022/4/3 10:47
+     * @Param
+     * @Return true表示签到成功，false表示签到失败
+     * @Author wjx
+     */
+    boolean sign();
+
+    /**
+     * @Des 统计当月连续签到次数：从最后一次签到开始向前统计，一直遇到第一次未签到为止，计算总的签到次数，就是连续签到次数
+     * @Date 2022/4/3 13:50
+     * @Param
+     * @Return
+     * @Author wjx
+     */
+    Integer countSignNum();
 }

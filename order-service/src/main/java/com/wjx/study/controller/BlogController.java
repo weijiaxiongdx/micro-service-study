@@ -56,4 +56,18 @@ public class BlogController {
         List<UserVO> userList = blogService.queryBlogOfFollow(max,offset);
         return Result.ok(userList);
     }
+
+    @ApiOperation(value = "签到")
+    @GetMapping(value = "/sign")
+    public Result<Boolean> sign() {
+        boolean result = blogService.sign();
+        return Result.ok(result);
+    }
+
+    @ApiOperation(value = "统计当月连续签到次数")
+    @GetMapping(value = "/countSignNum")
+    public Result<Integer> countSignNum() {
+        Integer num = blogService.countSignNum();
+        return Result.ok(num);
+    }
 }

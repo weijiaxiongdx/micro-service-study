@@ -17,10 +17,7 @@ public class UserServiceFallback implements UserServiceFeign {
     @Override
     public Result<UserVO> selectByPhone(String phone){
         // 容错逻辑
-        UserVO user = new UserVO();
-        user.setId(-100L);
-        user.setName("没有查到用户");
-        user.setPhone("183XXXXXXX");
+        UserVO user = new UserVO(-100L,"没有查到用户","183XXXXXXX");
         return Result.ok(user);
     }
 }

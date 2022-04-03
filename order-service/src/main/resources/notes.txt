@@ -215,6 +215,7 @@
      3.2.3查关注自己的粉丝，通过SortedSet实现滚动分页(分数设置为当前时间戳，倒序查)，通过分数进行查询，max为上一次的最小分数值(第一次为当前时间戳)，min不变(写为0)，offset为等于max的偏移量的个数(第一次为0，之后为上次最小值的重复数量)，count表示要查询的条数。
           实现见BlogController类的queryBlogOfFollow方法(不完整)
           ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count]
+     3.3签到、统计当月连续签到次数，实现分别见BlogController类的sign、countSignNum方法
 
 
 2.如何设置application.yml文件自动提示

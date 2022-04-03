@@ -1,18 +1,22 @@
 package com.wjx.study.service.impl;
 
 import cn.hutool.core.util.BooleanUtil;
+import com.wjx.common.Result;
 import com.wjx.common.dto.BlogLikeDTO;
 import com.wjx.common.dto.BlogTop5DTO;
 import com.wjx.common.vo.UserVO;
 import com.wjx.study.service.BlogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -160,5 +164,68 @@ public class BlogServiceImpl implements BlogService {
         //其它业务逻辑2，查数据库中的数据时有likeTop5中同样的顺序问题，解决方法一致 todo
         //最终封装返回结果，包括要查的数据、最小时间minTime(下一次查询的参数)、最小时间重复次数(下一次查询的参数)
         return null;
+    }
+
+    /**
+     * @Des 用户签到，key一般为用户id加上年月，方便统计
+     * @Date 2022/4/3 10:45
+     * @Param
+     * @Return true表示签到成功，false表示签到失败
+     * @Author wjx
+     */
+    @Override
+    public boolean sign(){
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+        String date = now.format(DateTimeFormatter.ofPattern("yyyyMM"));
+        String key = "sign:" + userId + ":" + date;
+        stringRedisTemplate.opsForValue().setBit(key,now.getDayOfMonth()-1,true);
+        return true;
+    }
+
+    /**
+     * @Des 统计当月连续签到次数：从最后一次签到开始向前统计，一直遇到第一次未签到为止，计算总的签到次数，就是连续签到次数
+     * @Date 2022/4/3 13:50
+     * @Param 
+     * @Return 
+     * @Author wjx
+     */
+    @Override
+    public Integer countSignNum(){
+        Long userId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+        String date = now.format(DateTimeFormatter.ofPattern("yyyyMM"));
+        String key = "sign:" + userId + ":" + date;
+        int dayOfMonth = now.getDayOfMonth();
+
+        //获取本月截至今天为止的所有签到记录，返回的是一个十进制数字，redis命令为BITFIELD sign:1:202204 get u14 0
+        //u表示无符号、14表示查多少个bit位(当前是几号就查多少个)、0表示从第一个位置开始查
+        List<Long> signList = stringRedisTemplate.opsForValue().bitField(key, BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0));
+        if(signList == null || signList.isEmpty()){
+            return 0;
+        }
+
+        //因为只有一个get子命令，所以最多只有一条数据，即当月的所有签到记录对应的十进制数字
+        Long num = signList.get(0);
+        if(num == null || num == 0){
+            return 0;
+        }
+
+        int count = 0;
+        while (true) {
+            //与1做与运算，得到这个数字的最后一个bit位，判断这个bit位是否为0，为0则表示未签到
+            if((num & 1) == 0){
+                // 未签到，则结束
+                break;
+            } else {
+                //签到，计算器加1
+                count++;
+            }
+
+            //把数字右移一位，去掉最后一位已判断过的bit位，继续下一个bit位判断
+            num >>>= 1;
+        }
+
+        return count;
     }
 }
