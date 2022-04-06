@@ -5,6 +5,20 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    timeout: 50000ms
+    testOnBorrow: false
+    testOnReturn: true
+    jedis: #spring-boot默认使用的是lettuce实现(可查看spring-boot-data-redis依赖中关联的依赖)，此处使用jedis
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
+
 
 # 加了以下配置才能打印出执行的SQL语句。 找不到日志文件，则启动报错
 logging:

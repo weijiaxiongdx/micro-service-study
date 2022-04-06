@@ -50,4 +50,18 @@ public class GoodsController {
         goodsVO.setSalePrice(BigDecimal.ZERO);
         return Result.ok(goodsVO);
     }
+
+    /**
+     * @Des 查询商品详情3，增加caffeine缓存，缓存查不到再查数据库
+     * @Date 2022/4/4 15:17
+     * @Param
+     * @Return
+     * @Author wjx
+     */
+    @ApiOperation(value = "查询商品详情3-增加caffeine缓存，缓存查不到再查数据库")
+    @GetMapping(value = "/detail/caffeine")
+    public Result<GoodsVO> selectGoodsFromCaffeine(@RequestParam("goodsId") Long id){
+        return Result.ok(goodsService.selectGoodsFromCaffeine(id));
+    }
+
 }

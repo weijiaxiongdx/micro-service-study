@@ -216,6 +216,130 @@
           实现见BlogController类的queryBlogOfFollow方法(不完整)
           ZREVRANGEBYSCORE key max min [WITHSCORES] [LIMIT offset count]
      3.3签到、统计当月连续签到次数，实现分别见BlogController类的sign、countSignNum方法
+  3.3引入多级缓存(浏览器缓存+nginx+redis+jvm本地缓存)，解决亿级流量问题
+     3.3.1整个架构描述
+            浏览器发起请求，先从浏览器缓存中查找数据，如果没找到，则请求会到专门的nginx服务器(专门用来作请求转发)，然后请求会被转发到业务nginx集群(可作缓存，其实是OpenResty集群)，业务nginx集群缓存中
+            没有找到数据，则请求会被nginx转发(使用lua脚本)到redis，redis中没有找到数据，则请求会被nginx转发(使用lua脚本)到应用服务器(jvm)，应用服务本地缓存中没有找到数据，最终会从数据库中查找数据。
+     3.3.1安装nginx(此nginx专门用作请求转发)
+          3.3.1.1下载并解压nginx-1.20.2到D:\wjx http://nginx.org/en/download.html
+          3.3.1.2修改nginx配置文件，新增如下配置
+                  #业务nginx集群，即OpenResty集群(127.0.0.1:81指向OpenResty)，作nginx本地缓存、redis缓存查询、tomcat缓存查询
+                  upstream nginx-cluster{
+                      server 127.0.0.1:81;
+                  }
+
+                  location /api {
+                      proxy_pass http://nginx-cluster;
+                  }
+          3.3.1.3安装目录下启动nginx
+                 start .\nginx.exe
+          3.3.1.4浏览器访问nginx
+                 http://localhost/
+     3.3.2应用集成Caffeine本地缓存(goods-service为例)
+          3.3.2.1引入依赖caffeine
+          3.3.2.2配置缓存配置类CaffeineCacheConfig
+          3.3.2.3增加缓存测试方法GoodsController类的selectGoodsFromCaffeine方法
+          3.3.2.4测试，浏览器访问http://localhost:9111/goods/detail/caffeine?goodsId=1
+                 可以在控制台看到，第一次有sql执行的日志，以后就没有sql执行的日志(缓存有效期内)
+     3.3.3安装Lua
+          3.3.3.1下载并解压，https://www.lua.org/，点击download->Building中点击get a binary->左侧选中Download->点击lua-5.4.2_Win64_bin.zip进行下载、解压
+          3.3.3.2修改解压后文件夹的名称为lua，去掉lua文件夹中所有exe文件名称中的数字
+          3.3.3.2配置Path系统环境变量，新增D:\wjx\lua
+          3.3.3.4cmd输入lua，出现以下版本信息表示成功
+                 Lua 5.4.2  Copyright (C) 1994-2020 Lua.org, PUC-Rio
+     3.3.4安装OpenResty
+          3.3.4.1下载并解压openresty-1.19.9.1-win64.zip，http://openresty.org/cn/download.html
+          3.3.4.2修改配置文件D:\wjx\openresty-1.19.9.1-win64\conf\nginx.conf中的端口为81，避免与nginx监听的端口冲突
+          3.3.4.3双击或命令启动nginx
+          3.3.4.4测试，http://localhost:81/
+          3.3.4.5修改配置文件
+                 在http下面添加对OpenResty的lua模块的加载
+                     #加载lua模块
+                     lua_package_path "../lualib/?.lua;;";
+
+                     #加载c模块
+                     lua_package_path "../lualib/?.so;;";
+                 在server下面添加对/api/goods这个路径的监听
+                     location /api/goods {#请求入口相当于java中的controller
+                         #响应数据类型
+                         default_type application/json;
+                         #响应数据由goods.lua文件决定
+                         content_by_lua_file lua_service/goods.lua;#lua文件相当于java中的service
+                     }
+          3.3.4.6在安装目录下创建lua_service目录并新建goods.lua文件，内容如下
+                 -- 返回假数据，这里的ngx.say()函数就是写数据到Response中
+                 ngx.say('{"id":10001,"name":"好东西"}')
+          3.3.3.7重载配置文件
+          3.3.3.8测试，http://localhost/api/goods/1，怎么报404？？？
+          3.3.3.9OpenResty获取请求参数的方式
+                3.3.3.9.1从路径点位符中获取，参数示例/goods/1，正则表达式匹配参数location ~ /goods/(\d+) {content_by_lua_file lua_service/goods.lua;}
+                         匹配到的参数会存入到ngx.var数组中，lua文件中可以通过角标获取local id = ngx.var[1]
+                3.3.3.9.2从请求头中获取，参数示例id:1000，获取请求头，返回的是tables类型local headers = ngx.req.get_headers()
+                3.3.3.9.3从Get请求中获取，参数示例?id=1000，获取Get请求参数，返回的是tables类型ngx.req.get_uri_args()
+                3.3.3.9.4从Post表单中获取，参数示例id=1000，先要读取请求体ngx.req.read_body()；然后获取post表单参数，返回的是tables类型local postParams = ngx.req.get_post_args()
+                3.3.3.9.5从JSON中获取，参数示例{"id":1000}，先要读取请求体ngx.req.read_body()；然后获取body中的参数，返回的是String类型local jsonBody = ngx.req.get_body_data()
+          3.3.3.10修改nginx配置，从路径点位符中获取请求中的商品id参数，将location /api/goods修改为location ~ /api/goods/(\d+)，goods.lua文件中加入local id = ngx.var[1]
+          3.3.3.11需求，在lua文件中根据获取到的商品id，向tomcat(商品服务)发送请求以获取商品、库存等信息，最终以json格式返回。
+                  3.3.3.11.1原理说明
+                             nginx内部提供了API以发送http请求，resp包括resp.status、resp.header、resp.body
+                             local resp = ngx.location.capture("/goods",{
+                                 method = ngx.HTTP_GET, --请求方式
+                                 args = {a=1,b=2},--get方式传参
+                                 body = "c=3&d=4" --post方式传参
+                             })
+                          这里的/goods是路径，并不包括ip和端口，这个请求会被nginx内部的server监听并处理，如果想要这个请求被转发到商品服务，还需要配置代理路径
+                              location /goods {
+                                  proxy_pass http://localhost:9111;#商品服务的地址
+                          }
+                  3.3.3.11.2把http查询请求封装为一个函数，放到OpenResty函数库中，方便使用。在\lualib目录下创建common.lua文件并输入以下内容
+                            local function read_http(path,params)
+                                local resp = ngx.location.capture(path,{
+                                                  method = ngx.HTTP_GET, --请求方式
+                                                  args = params,--get方式传参
+                                              })
+                                if not resp then
+                                    -- 记录错误信息，返回404
+                                    ngx.log(ngx.ERR,"http not found,path:",path,",args:",args)
+                                    ngx.exit(404)
+                                end
+                                return resp.body#成功则返回json字符串结果
+                            end
+
+                            -- 将方法导出
+                            local _M = {
+                                read_http = read_http
+                            }
+                            return _M
+                  3.3.3.11.3在goods.lua文件中导入函数库并发起请求查询商品、库存信息，即加入以下内容
+                            local common = require('common') -- require中的common为lua文件的名称
+                            local read_http = common.read_http
+
+                            local goodsJson = read_http("/goods/"..id,nil)
+                            local stockJson = read_http("/goods/stock"..id,nil) -- todo
+                  3.3.3.11.4封装数据并返回，需要导入cjson库，goods.lua文件中加入以下内容
+                            local cjson= require('cjson')
+
+                            -- json转为lua中的tables
+                            local goods = cjson.decode(goodsJson)
+                            local stock = cjson.decode(stockJson)
+
+                            -- 组合数据，库存、销量
+                            goods.stock = stock.stock
+                            goods.sold = stock.sold
+
+                            -- 将item序列化为json并返回结果，这里的ngx.say()函数就是写数据到Response中
+                            ngx.say(cjson.encode(goods))
+                  3.3.3.11.5将发向商品服务的请求改为负载均衡请求，在nginx配置文件增加如下内容并修改location中的proxy_pass配置。负载算法需要为$request_uri，让同一请求固定转发到同一个商品服务，否则JVM本地缓存失效
+                             upstream goods-cluster {
+                                 hash $request_uri;
+                                 server localhost:9111;
+                                 server localhost:9112;
+                               }
+     3.3.5redis缓存预热，实现见商品服务RedisHandler类
+
+
+
+
 
 
 2.如何设置application.yml文件自动提示
