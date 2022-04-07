@@ -31,7 +31,11 @@ public class RedisHandler implements InitializingBean {
         Long goodsId = 1L;//热点商品
         GoodsVO goods = goodsService.selectGoodsById(goodsId);
         String goodsJson = MAPPER.writeValueAsString(goods);
-        redisTemplate.opsForValue().set("goods:id" + goodsId,goodsJson);
+        /**
+         * 遇到的问题：此处使用redisTemplate，启动服务时，报错，一直连接不上redis，可能是lettuce连接池的bug
+         * 解决方案：在spring-boot-starter-data-redis的依赖中排除掉lettuce-core依赖，另外单独加上jedis的依赖
+         */
+        redisTemplate.opsForValue().set("goods:id:" + goodsId,goodsJson);
 
 
         //查询库存并放入缓存，缓存key前缀为goods:stock:id todo
