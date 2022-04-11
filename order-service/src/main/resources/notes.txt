@@ -231,8 +231,14 @@
                   location /api {
                       proxy_pass http://nginx-cluster;
                   }
-          3.3.1.3安装目录下启动nginx
+          3.3.1.3安装目录下启动、停止nginx
                  start .\nginx.exe
+
+                 快速停止(不保存信息)
+                 nginx.exe -s stop
+
+                 有序停止(保存信息)
+                 nginx.exe -s quit
           3.3.1.4浏览器访问nginx
                  http://localhost/
      3.3.2应用集成Caffeine本地缓存(goods-service为例)
@@ -250,7 +256,7 @@
      3.3.4安装OpenResty
           3.3.4.1下载并解压openresty-1.19.9.1-win64.zip，http://openresty.org/cn/download.html
           3.3.4.2修改配置文件D:\wjx\openresty-1.19.9.1-win64\conf\nginx.conf中的端口为81，避免与nginx监听的端口冲突
-          3.3.4.3双击或命令启动nginx
+          3.3.4.3双击或命令启动nginx，安装目录执行start .\nginx.exe
           3.3.4.4测试，http://localhost:81/
           3.3.4.5修改配置文件
                  在http下面添加对OpenResty的lua模块的加载
@@ -269,7 +275,7 @@
           3.3.4.6在安装目录下创建lua_service目录并新建goods.lua文件，内容如下
                  -- 返回假数据，这里的ngx.say()函数就是写数据到Response中
                  ngx.say('{"id":10001,"name":"好东西"}')
-          3.3.3.7重载配置文件
+          3.3.3.7重载配置文件nginx.exe -s reload
           3.3.3.8测试，http://localhost/api/goods/1，怎么报404？？？
           3.3.3.9OpenResty获取请求参数的方式
                 3.3.3.9.1从路径点位符中获取，参数示例/goods/1，正则表达式匹配参数location ~ /goods/(\d+) {content_by_lua_file lua_service/goods.lua;}
@@ -336,11 +342,58 @@
                                  server localhost:9112;
                                }
      3.3.5redis缓存预热，实现见商品服务RedisHandler类
+     3.3.6OpenResty操作redis
+          3.3.6.1在lualib/common.lua文件中引入redis模块并初始化redis对象，新增内容如下
+                 local redis = require("resty.redis") -- 引入redis模板，resty.redis表示OpenResty中lualib目录下的/resty/redis.lua文件。为什么lualib/resty目录中没有redis.lua文件呢？？？
+                 local redisObj = redis:new() -- 调用构造函数创建redis对象
+                 redisObj:set_timeouts(1000,1000,1000) -- 设置超时时间，单位：毫秒，分别为与redis建立连接的超时时间、发送请求的超时时间、响应的超时时间
+          3.3.6.2封装函数，用来释放redis连接(其实是放入连接池)，在lualib/common.lua文件中新增如下内容
+                 local function close_redis(redisObj)
+                     local pool_max_idle_time = 10000 -- 连接的空闲时间，单位：毫秒
+                     local pool_size = 100 -- 连接池大小
+                     local ok,err = redisObj:set_keepalive(pool_max_idle_time,pool_size)
+                     if not ok then
+                         ngx.log(ngx.ERR,"redis连接释放失败: ",err)
+                     end
+                 end
+          3.3.6.2封装函数，用来从redis读取数据并返回，在lualib/common.lua文件中新增如下内容
+                 local function read_redis(ip,port,key)
+                     local ok,err = redisObj:connect(ip,port) -- 获取连接
+                     if not ok then
+                         ngx.log(ngx.ERR,"连接redis失败: ",err)
+                         return nil
+                     end
 
+                     local resp,err = redisObj:get(key) -- 查询
+                     if not resp then -- 查询失败处理
+                         ngx.log(ngx.ERR,"查询redis失败: ",err,",key = ",key)
+                     end
 
+                     if resp == ngx.null then -- 查询数据为空处理
+                         resp = nil
+                         ngx.log(ngx.ERR,"查询redis数据为空,key = "，key)
+                     end
 
-
-
+                     close_redis(redisObj) -- 释放连接
+                     return resp
+                 end
+          3.3.6.3修改goods.lua文件中的查询逻辑，改为先查redis，redis未命中则再查数据库
+          3.3.6.4lualib/common.lua文件中的最终内容见nginx_local_cache_common.lua
+     3.3.7OpenResty本地缓存(先查OpenResty本地缓存、查不到再查redis缓存、查不到再查应用JVM本地缓存、查不到再查数据库，最终查到后，存入OpenResty本地缓存中)
+         3.3.7.1概念，OpenResty为nginx提供了shard dict的功能，即共享字典，可在nginx的多个worker之间共享数据，实现缓存功能
+         3.3.7.2开启共享字典，在OpenResty的nginx.conf文件中http下添加如下配置
+                lua_shared_dict goods_cache 150m #共享字典，即本地缓存(对象)，名字为goods_cache，大小为150m
+         3.3.7.3操作共享字典，在goods.lua文件中导入共享字典
+                local goods_cache = ngx.shared.goods_cache -- 获取本地缓存对象
+         3.3.7.4修改goods.lua脚本逻辑，改为先从OpenResty本地缓存中查，最终把数据存入本地缓存并设置过期时间。最终内容见nginx_local_cache.lua
+                goods_cache:set(key,value,1000) -- 向缓存中存储数据，1000为过期时间，单位：秒，默认为0表示永不过期
+                local val = goods_cache:get(key) -- 从缓存中读数据
+  3.4缓存同步
+     3.4.1缓存数据同步的常见方式
+          3.4.1.1设置有效期(OpenResty本地缓存使用的就是此方式)，优势：简单、方便；缺点：时效性较差、缓存过期之前可能不一致；场景：更新频率较低、时效性要求较低的业务
+          3.4.1.2同步双写(在修改数据库的同时直接修改缓存)，优势：时效性较强、缓存与数据强一致性；缺点：有代码侵入、耦合度较高；场景：对一致性和时效性要求较高的场景
+          3.4.1.2异步通知(修改数据库的时候发送异步通知，相关服务监听到通知后修改缓存数据)，优势：低耦合、可以同时通知多个缓存服务；缺点：时效性一般、可能存在中间不一致状态；场景：时效性要求较高、有多个服务需要同步；
+                 实现：MQ中间件或canal(无侵入)，canal的实现见另一个项目的CanalAction类(用的是canal原生API，也可以在SpringBoot中集成canal，简单很多)
 
 2.如何设置application.yml文件自动提示
   1.1File->Settings->Plugins，搜索spring assistant插件并安装
