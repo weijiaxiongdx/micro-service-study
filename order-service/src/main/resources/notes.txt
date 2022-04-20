@@ -52,6 +52,17 @@
                    sh startup.sh -m standalone
           1.7.4.6在阿里云ESC服务器配置安全组，以开放8848端口，供外网访问
                  http://120.79.89.16:8848/nacos/index.html
+          1.7.4.6修改端口号(如把端口修改为8858)
+                 1.7.4.6.1阿里云服务器管理控制台配置安全组
+                 1.7.4.6.2开放端口firewall-cmd --permanent --add-port=8858/tcp
+                          重新加载防火墙配置firewall-cmd --reload
+                 1.7.4.6.3修改配置文件/usr/local/nacos/nacos/conf/application.properties中的端口信息
+                          server.port=8858
+                 1.7.4.6.4重新启动nacos(先停掉服务)
+                          sh startup.sh -m standalone
+                 1.7.4.6.5浏览器访问
+                          http://120.79.89.16:8858/nacos/index.html
+
   1.8应用集成nacos
      1.8.1引入依赖spring-cloud-starter-alibaba-nacos-discovery
      1.8.2启动类上加注解@EnableDiscoveryClient
@@ -394,6 +405,11 @@
           3.4.1.2同步双写(在修改数据库的同时直接修改缓存)，优势：时效性较强、缓存与数据强一致性；缺点：有代码侵入、耦合度较高；场景：对一致性和时效性要求较高的场景
           3.4.1.2异步通知(修改数据库的时候发送异步通知，相关服务监听到通知后修改缓存数据)，优势：低耦合、可以同时通知多个缓存服务；缺点：时效性一般、可能存在中间不一致状态；场景：时效性要求较高、有多个服务需要同步；
                  实现：MQ中间件或canal(无侵入)，canal的实现见另一个项目的CanalAction类(用的是canal原生API，也可以在SpringBoot中集成canal，简单很多)
+  3.5多数据源(一个应用访问多个数据库)
+     3.5.1业务场景
+          场景一：业务复杂、数据量大，数据分布在不同的数据库，即数据库拆了，但应用没拆
+          场景二：读写分离
+     3.5.2实现方案 todo
 
 2.如何设置application.yml文件自动提示
   1.1File->Settings->Plugins，搜索spring assistant插件并安装
