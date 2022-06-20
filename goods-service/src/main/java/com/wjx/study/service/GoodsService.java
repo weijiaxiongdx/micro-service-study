@@ -22,4 +22,6 @@ public interface GoodsService {
      */
     GoodsVO selectGoodsFromCaffeine(Long id);
 
+    int updateGoodsById(Long id);
+
 }

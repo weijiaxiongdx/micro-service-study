@@ -6,4 +6,6 @@ import org.apache.ibatis.annotations.Param;
 public interface OrderMapper {
 
     OrderVO selectOrderById(@Param("id") Long id);
+
+    int updateOrderById(@Param("id") Long id);
 }

@@ -6,4 +6,7 @@
         select id, name, stock , sale_price from pp_goods where id = #{id,jdbcType=BIGINT}
     </select>
 
+    <update id="updateGoodsById">
+        update pp_goods set stock = stock - 10 where id = #{id}
+    </update>
 </mapper>

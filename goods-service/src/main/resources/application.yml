@@ -23,4 +23,11 @@ mybatis:
     # 开启下划线转驼峰
     map-underscore-to-camel-case: true
 
+seata:
+  tx-service-group: my_test_tx_group #事务分组名称，要和服务端一样，即和配置中心配置项service.vgroupMapping.my_test_tx_group=default中key的第三部分保持一致
+  service:
+    vgroup-mapping:
+      my_test_tx_group: default #key是事务分组名称(上面配置的)，value是配置中心配置项service.vgroupMapping.my_test_tx_group=default中的value，即default
+                                #也和registry.conf中nacos配置中的cluster的值一样
+
 

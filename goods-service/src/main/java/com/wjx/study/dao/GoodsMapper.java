@@ -6,4 +6,6 @@ import org.apache.ibatis.annotations.Param;
 public interface GoodsMapper {
 
     GoodsVO selectGoodsById(@Param("id") Long id);
+
+    int updateGoodsById(@Param("id") Long id);
 }

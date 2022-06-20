@@ -38,4 +38,10 @@ public class GoodsServiceFallback implements GoodsServiceFeign {
         goods.setSalePrice(BigDecimal.ZERO);
         return Result.ok(goods);
     }
+
+    @Override
+    public int updateGoodsById(Long id) {
+        System.out.println("商品更新失败");
+        return 0;
+    }
 }

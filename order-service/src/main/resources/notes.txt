@@ -410,6 +410,156 @@
           场景一：业务复杂、数据量大，数据分布在不同的数据库，即数据库拆了，但应用没拆
           场景二：读写分离
      3.5.2实现方案 todo
+  3.6引入seata
+     3.6.1下载seata server服务(当时最新版本1.4.2)并解压到目录D:\wjx\seata\seata-server-1.4.2
+          https://seata.io/zh-cn/blog/download.htmls
+     3.6.2修改配置文件,将以下配置文件中的注册中心、配置中心由默认的file都改成nacoss
+          D:\wjx\seata\seata-server-1.4.2\conf\registry.conf
+              A: 文件中nacos的namespace、group配置项目要与客户端保持一致，不然会找不到服务
+     3.6.3修改事务会话信息存储方式，将以下配置文件中的mode由默认的file改为db,并修改对应的db配置信息(数据库账号、密码等)。
+          D:\wjx\seata\seata-server-1.4.2\conf\file.conf
+              A: seata集成了配置中心后，file.conf文件中的内容可以放到配置中心进行统一配置，不用每个微服务都维护一个file.conf文件
+              B: 如果配置中心和注册中心的类型都不是file，则不需要file.conf文件了
+              C: 如果存储方式为db，则需要创建global_table(全局事务表)、branch_table(分支事务表)、lock_table(全局锁表)三张表，
+                 这三张表可以从源码的seata-1.4.2\script\server\db目录中获取(本地下载位置D:\wjx\seata\seata-1.4.2\script\server\db)
+                 https://github.com/seata/seata/releasess
+              D: file不支持高可用、db支持高可用
+     3.6.4启动seata-server(先启动nacos)，双击以下启动文件，启动成功后，可在nacos管理平台中看到服务名为seata-server的服务
+          D:\wjx\seata\seata-server-1.4.2\bin\seata-server.bat
+     3.6.5修改config.txt配置文件，配置文件内容可从源码目录seata-1.4.2\script\config-center\config.txt中获取(并修改存储方式、事务分组等信息)
+          A: 事务分组用于防护机房停电，来启用备用机房的，或是做异地机房容错，如果seata-server端配置了事务分组，client也需要配置相同的事务分组。
+             假如现有上海(shanghai)、北京(beijing)两个机房，刚开始使用的是上海机房,事务分组配置如service.vgroupMapping.shanghai=default，一旦上海机房出现了故障，
+             则可将事务分组配置改为service.vgroupMapping.beijing=default，即机房由上海切换到了北京
+          B: config.txt文件中的配置项service.vgroupMapping.my_test_tx_group=default，其中"my_test_tx_group"可以自定义、"default"为事务分组名称，
+             必须要与registry.config文件中的nacos配置项cluster = "default"保持一致
+     3.6.6上传config.txt配置文件内容至nacos配置中心(需要修改数据库驱动名称-因为本地数据库版本为8、url中需要加上时区信息，否则启动seata-server报错)
+          3.6.6.1上传方式一，通过脚本方式上传
+                  3.6.6.1.1将源码目录seata-1.4.2\script\config-center中的config.txt文件拷贝到seata-server安装目录D:\wjx\seata\seata-server-1.4.2
+                  3.6.6.1.2将源码目录seata-1.4.2\script\config-center\nacos中的nacos-config.sh脚本文件拷贝到seata-server安装目录D:\wjx\seata\seata-server-1.4.2，
+                           修改脚本文件中指定的config.txt文件的路径为当前路径(./)
+                  3.6.6.1.3使用git执行以下命令(-t配置命名空间，命名空间为registry.conf文件中配置的命名空间，默认为空)或将nacos-config.sh脚本文件直接拖到git命令窗口
+                           sh nacos-config.sh -h localhost -p 8848 -g SEATA_GROUP -t "" -u nacos -w nacos
+
+                           执行结果日志如下
+                           set nacosAddr=localhost:8848
+                           set group=SEATA_GROUP
+                           Set transport.type=TCP successfully
+                           Set transport.server=NIO successfully
+                           Set transport.heartbeat=true successfully
+                           Set transport.enableClientBatchSendRequest=false successfully
+                           Set transport.threadFactory.bossThreadPrefix=NettyBoss successfully
+                           Set transport.threadFactory.workerThreadPrefix=NettyServerNIOWorker successfully
+                           Set transport.threadFactory.serverExecutorThreadPrefix=NettyServerBizHandler successfully
+                           Set transport.threadFactory.shareBossWorker=false successfully
+                           Set transport.threadFactory.clientSelectorThreadPrefix=NettyClientSelector successfully
+                           Set transport.threadFactory.clientSelectorThreadSize=1 successfully
+                           Set transport.threadFactory.clientWorkerThreadPrefix=NettyClientWorkerThread successfully
+                           Set transport.threadFactory.bossThreadSize=1 successfully
+                           Set transport.threadFactory.workerThreadSize=default successfully
+                           Set transport.shutdown.wait=3 successfully
+                           Set #事务分组用于防护机房停电，来启用备用机房的，或是做异地机房容错，如果seata-server端配置了事务分组，client也需要配置相同的事务分组=#事务分组用于防护机房停电，来启用备用机房的，或是做异地机房容错，如果seata-server端配置了事务分组，client也需要配置相同的事务分组 failure
+                           Set service.vgroupMapping.my_test_tx_group=default successfully
+                           Set #第二部分的配置"default"就是上一行配置的分组名称=#第二部分的配置"default"就是上一行配置的分组名称 failure
+                           Set service.default.grouplist=127.0.0.1:8091 successfully
+                           Set service.enableDegrade=false successfully
+                           Set service.disableGlobalTransaction=false successfully
+                           Set client.rm.asyncCommitBufferLimit=10000 successfully
+                           Set client.rm.lock.retryInterval=10 successfully
+                           Set client.rm.lock.retryTimes=30 successfully
+                           Set client.rm.lock.retryPolicyBranchRollbackOnConflict=true successfully
+                           Set client.rm.reportRetryCount=5 successfully
+                           Set client.rm.tableMetaCheckEnable=false successfully
+                           Set client.rm.tableMetaCheckerInterval=60000 successfully
+                           Set client.rm.sqlParserType=druid successfully
+                           Set client.rm.reportSuccessEnable=false successfully
+                           Set client.rm.sagaBranchRegisterEnable=false successfully
+                           Set client.tm.commitRetryCount=5 successfully
+                           Set client.tm.rollbackRetryCount=5 successfully
+                           Set client.tm.defaultGlobalTransactionTimeout=60000 successfully
+                           Set client.tm.degradeCheck=false successfully
+                           Set client.tm.degradeCheckAllowTimes=10 successfully
+                           Set client.tm.degradeCheckPeriod=2000 successfully
+                           Set store.mode=db successfully
+                           Set store.publicKey= failure
+                           Set store.file.dir=file_store/data successfully
+                           Set store.file.maxBranchSessionSize=16384 successfully
+                           Set store.file.maxGlobalSessionSize=512 successfully
+                           Set store.file.fileWriteBufferCacheSize=16384 successfully
+                           Set store.file.flushDiskMode=async successfully
+                           Set store.file.sessionReloadReadSize=100 successfully
+                           Set store.db.datasource=druid successfully
+                           Set store.db.dbType=mysql successfully
+                           Set store.db.driverClassName=com.mysql.jdbc.Driver successfully
+                           Set store.db.url=jdbc:mysql://127.0.0.1:3306/seata?useUnicode=true&rewriteBatchedStatements=true successfully
+                           Set store.db.user=root successfully
+                           Set store.db.password=123456 successfully
+                           Set store.db.minConn=5 successfully
+                           Set store.db.maxConn=30 successfully
+                           Set store.db.globalTable=global_table successfully
+                           Set store.db.branchTable=branch_table successfully
+                           Set store.db.queryLimit=100 successfully
+                           Set store.db.lockTable=lock_table successfully
+                           Set store.db.maxWait=5000 successfully
+                           Set store.redis.mode=single successfully
+                           Set store.redis.single.host=127.0.0.1 successfully
+                           Set store.redis.single.port=6379 successfully
+                           Set store.redis.sentinel.masterName= failure
+                           Set store.redis.sentinel.sentinelHosts= failure
+                           Set store.redis.maxConn=10 successfully
+                           Set store.redis.minConn=1 successfully
+                           Set store.redis.maxTotal=100 successfully
+                           Set store.redis.database=0 successfully
+                           Set store.redis.password= failure
+                           Set store.redis.queryLimit=100 successfully
+                           Set server.recovery.committingRetryPeriod=1000 successfully
+                           Set server.recovery.asynCommittingRetryPeriod=1000 successfully
+                           Set server.recovery.rollbackingRetryPeriod=1000 successfully
+                           Set server.recovery.timeoutRetryPeriod=1000 successfully
+                           Set server.maxCommitRetryTimeout=-1 successfully
+                           Set server.maxRollbackRetryTimeout=-1 successfully
+                           Set server.rollbackRetryTimeoutUnlockEnable=false successfully
+                           Set client.undo.dataValidation=true successfully
+                           Set client.undo.logSerialization=jackson successfully
+                           Set client.undo.onlyCareUpdateColumns=true successfully
+                           Set server.undo.logSaveDays=7 successfully
+                           Set server.undo.logDeletePeriod=86400000 successfully
+                           Set client.undo.logTable=undo_log successfully
+                           Set client.undo.compress.enable=true successfully
+                           Set client.undo.compress.type=zip successfully
+                           Set client.undo.compress.threshold=64k successfully
+                           Set log.exceptionRate=100 successfully
+                           Set transport.serialization=seata successfully
+                           Set transport.compressor=none successfully
+                           Set metrics.enabled=false successfully
+                           Set metrics.registryType=compact successfully
+                           Set metrics.exporterList=prometheus successfully
+                           Set metrics.exporterPrometheusPort=9898 successfully
+                           =========================================================================
+                            Complete initialization parameters,  total-count:91 ,  failure-count:6
+                           =========================================================================
+                            init nacos config fail.
+                  3.6.6.1.3在nacos管理平台中查看对应的配置信息，可以看到每一个配置项都是单独Data Id，不方便查看
+          3.6.6.1上传方式二(1.4.2及以后版本才支持)，直接在nacos管理平台中新建配置，Data Id为seataServer.properties、配置格式选择Properties、拷贝config文件中的内容到配置内容中、点击发布
+     3.6.7如果seata-server为集群部署，怎么修改端口？(支持的启动参数还有很多，参考官网)
+          Linux/Mac下 sh ./bin/seata-server.sh -p XXX
+          Windows下 bin/seata-server.bat -p XXX
+     3.6.8在order-service、goods-service服务中增加依赖spring-cloud-starter-alibaba-seata
+     3.6.9在对应的服务的数据库中增加undo_log表(用于数据的回滚),可从源码目录seata-1.4.2\script\client\at\db中获取对应数据的undo.log脚本
+     3.7.0在order-service服务的配置文件中增加seata相关的配置(配置中心配置seata相关)
+          seata:
+            tx-service-group: my_test_tx_group #事务分组名称，要和服务端一样，即和配置中心配置项service.vgroupMapping.my_test_tx_group=default中key的第三部分保持一致
+            service:
+              vgroup-mapping:
+                my_test_tx_group: default # key是事务分组名称(上面配置的)，value是配置中心配置项service.vgroupMapping.my_test_tx_group=default中的value，即default
+                                          # 也和registry.conf中nacos配置中的cluster的值一样
+     3.7.1在goods-service服务的application.yml文件中配置上步中同样的内容(本地配置)
+     3.7.2重启seata-server、应用服务等
+          如果seata-server存储方式为db则必须先创建3.6.3中的三张表,否则启动seata-server会闪退，seata的C:\Users\xgucs\logs\seata\seata-server.8091.error文件中也不会记录错误日志,
+          还是看all文件或warn日志文件，发现以下内容，然后去数据库中创建这三张表，再次重启seata-server，成功启动
+          2022-06-20 17:48:01.434  WARN --- [main] i.s.s.s.db.store.LogStoreDataBaseDAO : global_table table or TRANSACTION_NAME column not found
+     3.7.3order-service服务OrderController中增加seataTest方法
+     3.7.4浏览器测试http://localhost:9110/order/goods/seata/test?orderId=308
+          测试时，一直远程接口调不通，版本问题？？？todo
 
 2.如何设置application.yml文件自动提示
   1.1File->Settings->Plugins，搜索spring assistant插件并安装

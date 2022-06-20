@@ -5,6 +5,7 @@ import com.wjx.common.dto.OrderCreateDTO;
 import com.wjx.common.vo.GoodsVO;
 import com.wjx.common.vo.OrderVO;
 import com.wjx.study.service.OrderService;
+import io.seata.spring.annotation.GlobalTransactional;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,7 +87,7 @@ public class OrderController {
      * @Return
      * @Author wjx
      */
-    @ApiOperation(value = " 远程查看商品详情4")
+    @ApiOperation(value = "远程查看商品详情4")
     @GetMapping("/goods/detail4")
     public Result<GoodsVO> selectGoodsById4(@RequestParam("goodsId") Long id){
         return Result.ok(orderService.selectGoodsById4(id));
@@ -132,4 +133,18 @@ public class OrderController {
         return Result.ok();
     }
 
+
+    /**
+     * @Des seata分布式事务测试
+     * @Date 2022/6/20 18:08
+     * @Param id 订单id
+     * @Return
+     * @Author wjx
+     */
+    @ApiOperation(value = "seata分布式事务测试")
+    @GetMapping("/goods/seata/test")
+    public Result<Void> seataTest(@RequestParam("orderId") Long id) {
+       orderService.seataTest(id);
+        return Result.ok();
+    }
 }

@@ -64,4 +64,24 @@ public class GoodsController {
         return Result.ok(goodsService.selectGoodsFromCaffeine(id));
     }
 
+
+    /**
+     * @Des 更新商品
+     * @Date 2022/4/4 15:17
+     * @Param
+     * @Return
+     * @Author wjx
+     */
+    @ApiOperation(value = "更新商品")
+    @GetMapping(value = "/update")
+    public int updateGoodsById(@RequestParam("goodsId") Long id){
+        System.out.println("更新商品，商品id:" + id);
+        int count = 0;
+        try {
+            count = goodsService.updateGoodsById(id);
+        } catch (Exception e) {
+            System.out.println("更新商品失败，错误信息:" + e);
+        }
+        return count;
+    }
 }

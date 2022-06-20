@@ -24,4 +24,6 @@ public interface OrderService {
     GoodsVO selectGoodsById6(Long id);
 
     void createOrder(OrderCreateDTO dto);
+
+    void seataTest(Long id);
 }

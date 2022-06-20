@@ -29,4 +29,7 @@ public interface GoodsServiceFeign {
 
     @GetMapping(value = "/goods/detail2")
     Result<GoodsVO> selectGoodsById2(@RequestParam("goodsId") Long id);
+
+    @GetMapping(value = "/goods/update")
+    int updateGoodsById(@RequestParam("goodsId") Long id);
 }

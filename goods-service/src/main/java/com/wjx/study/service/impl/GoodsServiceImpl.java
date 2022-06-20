@@ -45,4 +45,11 @@ public class GoodsServiceImpl implements GoodsService {
     public GoodsVO selectGoodsFromCaffeine(Long id){
         return goodsCache.get(id, goodsId->selectGoodsById(goodsId));
     }
+
+    @Override
+    public int updateGoodsById(Long id){
+         int count = goodsMapper.updateGoodsById(id);
+         return count;
+    }
+
 }

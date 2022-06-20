@@ -6,4 +6,7 @@
         select id, status, order_number orderNo, user_id from pp_order_pro where id = #{id,jdbcType=BIGINT}
     </select>
 
+    <update id="updateOrderById">
+        update pp_order_pro set pay_price = pay_price - 10 where id = #{id}
+    </update>
 </mapper>
