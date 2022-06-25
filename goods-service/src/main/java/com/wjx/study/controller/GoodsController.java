@@ -79,6 +79,7 @@ public class GoodsController {
         int count = 0;
         try {
             count = goodsService.updateGoodsById(id);
+            System.out.println(1/0);
         } catch (Exception e) {
             throw new Exception("更新商品失败,异常信息：",e);
         }

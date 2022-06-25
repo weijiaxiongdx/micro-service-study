@@ -413,10 +413,10 @@
   3.6引入seata
      3.6.1下载seata server服务(当时最新版本1.4.2)并解压到目录D:\wjx\seata\seata-server-1.4.2
           https://seata.io/zh-cn/blog/download.htmls
-     3.6.2修改配置文件,将以下配置文件中的注册中心、配置中心由默认的file都改成nacoss
+     3.6.2修改配置文件,将以下配置文件中的注册中心、配置中心由默认的file都改成nacos
           D:\wjx\seata\seata-server-1.4.2\conf\registry.conf
               A: 文件中nacos的namespace、group配置项目要与客户端保持一致，不然会找不到服务
-     3.6.3修改事务会话信息存储方式，将以下配置文件中的mode由默认的file改为db,并修改对应的db配置信息(数据库账号、密码等)。
+     3.6.3修改事务会话信息存储方式，将以下配置文件中的mode由默认的file改为db,并修改对应的db配置信息(数据库账号、密码等)。注册中心、配置中心都改成nacos时，此步不需要做
           D:\wjx\seata\seata-server-1.4.2\conf\file.conf
               A: seata集成了配置中心后，file.conf文件中的内容可以放到配置中心进行统一配置，不用每个微服务都维护一个file.conf文件
               B: 如果配置中心和注册中心的类型都不是file，则不需要file.conf文件了
@@ -437,8 +437,8 @@
                   3.6.6.1.1将源码目录seata-1.4.2\script\config-center中的config.txt文件拷贝到seata-server安装目录D:\wjx\seata\seata-server-1.4.2
                   3.6.6.1.2将源码目录seata-1.4.2\script\config-center\nacos中的nacos-config.sh脚本文件拷贝到seata-server安装目录D:\wjx\seata\seata-server-1.4.2，
                            修改脚本文件中指定的config.txt文件的路径为当前路径(./)
-                  3.6.6.1.3使用git执行以下命令(-t配置命名空间，命名空间为registry.conf文件中配置的命名空间，默认为空)或将nacos-config.sh脚本文件直接拖到git命令窗口
-                           sh nacos-config.sh -h localhost -p 8848 -g SEATA_GROUP -t "" -u nacos -w nacos
+                  3.6.6.1.3使用git执行以下命令(-t配置命名空间id，命名空间为registry.conf文件中配置的命名空间，默认为空，此处使用配置中心中新创建的seata专用的命名空间)或将nacos-config.sh脚本文件直接拖到git命令窗口
+                           sh nacos-config.sh -h localhost -p 8848 -g SEATA_GROUP -t ac745312-929c-4552-a837-f11d13faec80 -u nacos -w nacos
 
                            执行结果日志如下
                            set nacosAddr=localhost:8848
@@ -544,14 +544,10 @@
           Linux/Mac下 sh ./bin/seata-server.sh -p XXX
           Windows下 bin/seata-server.bat -p XXX
      3.6.8在order-service、goods-service服务中增加依赖spring-cloud-starter-alibaba-seata
+          需要排除自带的seata低版本依赖
      3.6.9在对应的服务的数据库中增加undo_log表(用于数据的回滚),可从源码目录seata-1.4.2\script\client\at\db中获取对应数据的undo.log脚本
      3.7.0在order-service服务的配置文件中增加seata相关的配置(配置中心配置seata相关)
-          seata:
-            tx-service-group: my_test_tx_group #事务分组名称，要和服务端一样，即和配置中心配置项service.vgroupMapping.my_test_tx_group=default中key的第三部分保持一致
-            service:
-              vgroup-mapping:
-                my_test_tx_group: default # key是事务分组名称(上面配置的)，value是配置中心配置项service.vgroupMapping.my_test_tx_group=default中的value，即default
-                                          # 也和registry.conf中nacos配置中的cluster的值一样
+         见配置中心order-service.yaml文件中seata相关的配置
      3.7.1在goods-service服务的application.yml文件中配置上步中同样的内容(本地配置)
      3.7.2重启seata-server、应用服务等
           如果seata-server存储方式为db则必须先创建3.6.3中的三张表,否则启动seata-server会闪退，seata的C:\Users\xgucs\logs\seata\seata-server.8091.error文件中也不会记录错误日志,
@@ -559,7 +555,16 @@
           2022-06-20 17:48:01.434  WARN --- [main] i.s.s.s.db.store.LogStoreDataBaseDAO : global_table table or TRANSACTION_NAME column not found
      3.7.3order-service服务OrderController中增加seataTest方法
      3.7.4浏览器测试http://localhost:9110/order/goods/seata/test?orderId=308
-          测试时，一直远程接口调不通，版本问题？？？todo
+          1.正常测试，订单、商品数据都修改成功
+          2.异常测试，在goods-service服务对应的接口，人为制造异常，订单、商品数据都不会修改(回滚成功,先修改订单、商品两张表数据然后再反向补偿)。
+                    直接停掉goods-service服务，订单、商品数据都不会修改(回滚成功，先修改订单数据，然后再返回补偿)
+     3.7.5注意项
+          3.7.5.1引入seata后，远程调用一直报错误Load balancer does not have available server for client: 192.168.226.1
+                 原因：seata与项目中的zipkin相关的依赖有冲突
+                 解决方案：在启动类注解@SpringBootApplication中排除SeataFeignClientAutoConfiguration自动配置类、增加全局拦截器SeaterInterceptor(手动传递xid)
+          3.7.5.2远程调用因为异常走了降级逻辑，根据降级逻辑的返回值判断且必须抛出异常，以使TC感知到异常，否则全局事务失效(出错不会回滚)
+          3.7.5.3如果seata-server存储方式为db，则必须先创建global_table(全局事务表)、branch_table(分支事务表)、lock_table(全局锁表)三张表,否则启动seata-server会闪退
+          3.7.5.4存储方式为db时，数据库连接url中需要加上时区信息，否则启动seata-server报错
 
 2.如何设置application.yml文件自动提示
   1.1File->Settings->Plugins，搜索spring assistant插件并安装

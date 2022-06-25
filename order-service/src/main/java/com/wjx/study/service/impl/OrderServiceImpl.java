@@ -12,6 +12,7 @@ import com.wjx.common.vo.OrderVO;
 import com.wjx.study.dao.OrderMapper;
 import com.wjx.study.feign.GoodsServiceFeign;
 import com.wjx.study.service.OrderService;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.ServiceInstance;
@@ -201,7 +202,7 @@ public class OrderServiceImpl implements OrderService {
      * @Return
      * @Author wjx
      */
-//    @GlobalTransactional
+    @GlobalTransactional(rollbackFor = Exception.class)
     @Override
     public void seataTest(Long id){
         orderMapper.updateOrderById(id);
@@ -210,6 +211,7 @@ public class OrderServiceImpl implements OrderService {
         try {
             int count = goodsServiceFeign.updateGoodsById(1L);
             if(count == 0){
+                // 远程调用因为异常走了降级逻辑，此处必须抛出异常，以使TC感知到异常，否则全局事务失效(出错不会回滚)
                 throw new Exception("更新商品失败，异常信息1");
             }
             log.info("更新商品库存成功，商品id:{}",1L);
