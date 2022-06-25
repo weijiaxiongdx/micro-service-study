@@ -5,7 +5,6 @@ import com.wjx.common.dto.OrderCreateDTO;
 import com.wjx.common.vo.GoodsVO;
 import com.wjx.common.vo.OrderVO;
 import com.wjx.study.service.OrderService;
-import io.seata.spring.annotation.GlobalTransactional;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -143,7 +142,7 @@ public class OrderController {
      */
     @ApiOperation(value = "seata分布式事务测试")
     @GetMapping("/goods/seata/test")
-    public Result<Void> seataTest(@RequestParam("orderId") Long id) {
+    public Result<Void> seataTest(@RequestParam("orderId") Long id) throws Exception {
        orderService.seataTest(id);
         return Result.ok();
     }

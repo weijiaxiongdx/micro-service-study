@@ -25,5 +25,5 @@ public interface OrderService {
 
     void createOrder(OrderCreateDTO dto);
 
-    void seataTest(Long id);
+    void seataTest(Long id) throws Exception;
 }

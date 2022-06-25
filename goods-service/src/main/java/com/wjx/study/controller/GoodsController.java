@@ -74,13 +74,13 @@ public class GoodsController {
      */
     @ApiOperation(value = "更新商品")
     @GetMapping(value = "/update")
-    public int updateGoodsById(@RequestParam("goodsId") Long id){
+    public int updateGoodsById(@RequestParam("goodsId") Long id) throws Exception {
         System.out.println("更新商品，商品id:" + id);
         int count = 0;
         try {
             count = goodsService.updateGoodsById(id);
         } catch (Exception e) {
-            System.out.println("更新商品失败，错误信息:" + e);
+            throw new Exception("更新商品失败,异常信息：",e);
         }
         return count;
     }
